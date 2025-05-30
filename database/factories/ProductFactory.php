@@ -27,7 +27,6 @@ class ProductFactory extends Factory
 
     public function definition(): array
     {   
-
         return [
             'name' => $name = $this->faker->words(3, asText: true),
             'slug' => Str::slug($name . '-' . Str::random(8)),
