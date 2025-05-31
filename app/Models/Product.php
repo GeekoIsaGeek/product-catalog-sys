@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Cache;
 
 class Product extends Model
@@ -14,7 +15,7 @@ class Product extends Model
 
     const PRODUCTS_CACHE_VERSION_KEY = 'products_version';
 
-    protected static function booted()
+    protected static function booted(): void
     {
         static::created(function () {
            $this->incrementProductCacheVersion();
@@ -29,12 +30,12 @@ class Product extends Model
         });
     }
 
-    public function category()
+    public function category(): BelongsTo
     {
         return $this->belongsTo(Category::class);
     }
 
-    private function incrementProductCacheVersion() {
+    private function incrementProductCacheVersion(): void {
         Cache::increment(self::PRODUCTS_CACHE_VERSION_KEY);
     }
 }

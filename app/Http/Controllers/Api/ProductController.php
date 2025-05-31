@@ -16,36 +16,15 @@ class ProductController extends Controller
 
     const PRODUCTS_CACHE_VERSION_KEY = 'products_version';
 
-    public function index(Request $request)
+    public function index(Request $request): mixed
     {
         try{
             $category = $request->query('category');
             $sort = $request->query('sort');
             $page = $request->query('page', 1); 
 
-            $cacheVersion = Cache::rememberForever(self::PRODUCTS_CACHE_VERSION_KEY, function () {
-                return 1; 
-            });
-
-            $cacheKeyParts = ['products'];
-            $cacheKeyParts[] = 'v' . $cacheVersion;
-
-            if ($category) {
-                $cacheKeyParts[] = 'category_' . Str::slug($category); 
-            } else {
-                $cacheKeyParts[] = 'all_categories';
-            }
-
-            if ($sort) {
-                $cacheKeyParts[] = 'sort_' . Str::slug($sort); 
-            } else {
-                $cacheKeyParts[] = 'no_sort';
-            }
-
-            $cacheKeyParts[] = 'page_' . $page;
-
-            $cacheKey = implode('_', $cacheKeyParts);
-
+            $cacheKey = $this->buildCacheKey(category: $category, page: $page, sort: $sort);
+           
             $products = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($category, $sort) {
                 $productsQuery = Product::query();
 
@@ -99,5 +78,31 @@ class ProductController extends Controller
     public function destroy(string $id)
     {
         //
+    }
+
+    private function buildCacheKey($category, $page, $sort): string
+    {
+        $cacheVersion = Cache::rememberForever(self::PRODUCTS_CACHE_VERSION_KEY, function () {
+            return 1; 
+        });
+
+        $cacheKeyParts = ['products'];
+        $cacheKeyParts[] = 'v' . $cacheVersion;
+
+        if ($category) {
+            $cacheKeyParts[] = 'category_' . Str::slug($category); 
+        } else {
+            $cacheKeyParts[] = 'all_categories';
+        }
+
+        if ($sort) {
+            $cacheKeyParts[] = 'sort_' . Str::slug($sort); 
+        } else {
+            $cacheKeyParts[] = 'no_sort';
+        }
+
+        $cacheKeyParts[] = 'page_' . $page;
+
+        return  implode('_', $cacheKeyParts);
     }
 }
