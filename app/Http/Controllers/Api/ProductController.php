@@ -13,6 +13,9 @@ class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
+
+    const PRODUCTS_CACHE_VERSION_KEY = 'products_version';
+
     public function index(Request $request)
     {
         try{
@@ -20,7 +23,12 @@ class ProductController extends Controller
             $sort = $request->query('sort');
             $page = $request->query('page', 1); 
 
+            $cacheVersion = Cache::rememberForever(self::PRODUCTS_CACHE_VERSION_KEY, function () {
+                return 1; 
+            });
+
             $cacheKeyParts = ['products'];
+            $cacheKeyParts[] = 'v' . $cacheVersion;
 
             if ($category) {
                 $cacheKeyParts[] = 'category_' . Str::slug($category); 
@@ -38,9 +46,7 @@ class ProductController extends Controller
 
             $cacheKey = implode('_', $cacheKeyParts);
 
-            $cacheDuration = 60 * 60; 
-
-            $products = Cache::remember($cacheKey, $cacheDuration, function () use ($category, $sort) {
+            $products = Cache::remember($cacheKey, now()->addMinutes(30), function () use ($category, $sort) {
                 $productsQuery = Product::query();
 
                 if ($category) {
