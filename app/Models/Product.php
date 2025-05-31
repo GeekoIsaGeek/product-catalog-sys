@@ -13,8 +13,6 @@ class Product extends Model
     
     protected $guarded = ['id'];
 
-    const PRODUCTS_CACHE_VERSION_KEY = 'products_version';
-
     protected static function booted(): void
     {
         static::created(function () {
@@ -36,6 +34,6 @@ class Product extends Model
     }
 
     private function incrementProductCacheVersion(): void {
-        Cache::increment(self::PRODUCTS_CACHE_VERSION_KEY);
+        Cache::increment(config('constants.products_version_key'));
     }
 }

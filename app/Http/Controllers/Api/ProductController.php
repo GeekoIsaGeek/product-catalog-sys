@@ -13,9 +13,6 @@ class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
-
-    const PRODUCTS_CACHE_VERSION_KEY = 'products_version';
-
     public function index(Request $request): mixed
     {
         try{
@@ -39,7 +36,7 @@ class ProductController extends Controller
                     $productsQuery->orderBy($column, $direction ?? 'asc');
                 }
 
-                return $productsQuery->with(['category' => fn($query) => $query->select(['id', 'name'])])->paginate(100);
+                return $productsQuery->with(['category' => fn($query) => $query->select(['id', 'name'])])->paginate(config('constants.products_per_page'));
             });
 
             return $products; 
@@ -82,7 +79,7 @@ class ProductController extends Controller
 
     private function buildCacheKey($category, $page, $sort): string
     {
-        $cacheVersion = Cache::rememberForever(self::PRODUCTS_CACHE_VERSION_KEY, function () {
+        $cacheVersion = Cache::rememberForever(config('constants.products_version_key'), function () {
             return 1; 
         });
 
