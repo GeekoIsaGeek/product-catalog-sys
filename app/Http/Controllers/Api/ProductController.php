@@ -11,9 +11,30 @@ class ProductController extends Controller
     /**
      * Display a listing of the resource.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return Product::with('category')->paginate(200);
+        try{
+            $category = $request->query('category');
+            $sort = $request->query('sort');
+
+            $productsQuery = Product::query();
+
+            if($category){
+                $productsQuery->whereHas('category', function($query) use ($category) {
+                    $query->where('slug', $category);
+                });
+            } 
+
+            if($sort){
+                [$column, $direction] = explode('_', $sort);
+                $productsQuery->orderBy($column, $direction ?? 'asc');
+            }
+
+            return $productsQuery->with(['category' => fn($query) => $query->select(['id','name'])])->paginate(200);
+        }catch(\Exception $e){
+            return response()->json(['error' => 'An error occurred while fetching products.', 'exactError' => $e->getMessage()], 500);
+        }
+        
     }
 
     /**
