@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Product;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Cache;
 
 class ProductController extends Controller
 {
@@ -16,25 +18,49 @@ class ProductController extends Controller
         try{
             $category = $request->query('category');
             $sort = $request->query('sort');
+            $page = $request->query('page', 1); 
 
-            $productsQuery = Product::query();
+            $cacheKeyParts = ['products'];
 
-            if($category){
-                $productsQuery->whereHas('category', function($query) use ($category) {
-                    $query->where('slug', $category);
-                });
-            } 
-
-            if($sort){
-                [$column, $direction] = explode('_', $sort);
-                $productsQuery->orderBy($column, $direction ?? 'asc');
+            if ($category) {
+                $cacheKeyParts[] = 'category_' . Str::slug($category); 
+            } else {
+                $cacheKeyParts[] = 'all_categories';
             }
 
-            return $productsQuery->with(['category' => fn($query) => $query->select(['id','name'])])->paginate(200);
+            if ($sort) {
+                $cacheKeyParts[] = 'sort_' . Str::slug($sort); 
+            } else {
+                $cacheKeyParts[] = 'no_sort';
+            }
+
+            $cacheKeyParts[] = 'page_' . $page;
+
+            $cacheKey = implode('_', $cacheKeyParts);
+
+            $cacheDuration = 60 * 60; 
+
+            $products = Cache::remember($cacheKey, $cacheDuration, function () use ($category, $sort) {
+                $productsQuery = Product::query();
+
+                if ($category) {
+                    $productsQuery->whereHas('category', function ($query) use ($category) {
+                        $query->where('slug', $category);
+                    });
+                }
+
+                if ($sort) {
+                    [$column, $direction] = explode('_', $sort);
+                    $productsQuery->orderBy($column, $direction ?? 'asc');
+                }
+
+                return $productsQuery->with(['category' => fn($query) => $query->select(['id', 'name'])])->paginate(100);
+            });
+
+            return $products; 
         }catch(\Exception $e){
             return response()->json(['error' => 'An error occurred while fetching products.', 'exactError' => $e->getMessage()], 500);
-        }
-        
+        }    
     }
 
     /**
@@ -42,7 +68,7 @@ class ProductController extends Controller
      */
     public function store(Request $request)
     {
-        //
+    
     }
 
     /**
